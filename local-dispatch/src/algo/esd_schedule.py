@@ -10,27 +10,16 @@ from dto.esd_schedule_data import (
 
 
 class ESDScheduler:
-    def __init__(self, esd_schedule_data: ESDScheduleInput) -> None:
-        """初始化调度器。
+    def __init__(self, esdata: ESDScheduleInput) -> None:
+        self.esdata: ESDScheduleInput = esdata
+        self.max_slot: int = len(self.esdata.delivery_capacities) - 1
 
-        :param esd_schedule_data: 调度算法输入对象，包含 group 列表和发货产能列表。
-        :type esd_schedule_data: ESDScheduleInput
-        :returns: 无。
-        :rtype: None
-        :功能: 保存调度输入，并预先计算最大可用时间片索引，供后续调度过程使用。
+    def schedule(self) -> ESDScheduleOutput:
         """
-        self.esd_schedule_data: ESDScheduleInput = esd_schedule_data
-        self.max_slot: int = len(self.esd_schedule_data.delivery_capacities) - 1
-
-    def schedule(self) -> Optional[ESDScheduleOutput]:
-        """执行整体调度。
-
-        :returns: 调度结果 ``ESDScheduleOutput``；如果总产能不足以安排所有 group，则返回 ``None``。
-        :rtype: Optional[ESDScheduleOutput]
-        :功能: 按“目标结束时间 -> 优先级 -> 创建时间”的顺序对 group 排序，然后依次为每个 group 分配连续的发货产能时间片。
+        依次为每个 group 分配连续的发货产能时间片。
         """
         groups: List[Group] = sorted(
-            self.esd_schedule_data.groups,
+            self.esdata.groups,
             key=lambda group: (
                 group.target_finish_time,
                 group.priority,
@@ -41,7 +30,7 @@ class ESDScheduler:
         # availability[i] 表示第 i 个时间片还剩余多少个垛口可用。
         # 每成功安排一个 group，就把它占用到的时间片垛口数减 1。
         availability: List[int] = [
-            capacity.dock_num for capacity in self.esd_schedule_data.delivery_capacities
+            capacity.dock_num for capacity in self.esdata.delivery_capacities
         ]
         output: ESDScheduleOutput = ESDScheduleOutput()
 
@@ -62,12 +51,7 @@ class ESDScheduler:
         """为单个 group 选择可行的结束时间并分配产能。
 
         :param group: 当前待分配的分组。
-        :type group: Group
         :param availability: 各时间片剩余垛口数，会在成功分配后被原地修改。
-        :type availability: List[int]
-        :returns: 成功时返回 ``(结束时间, 该 group 的时间片产能占用明细)``；如果所有候选结束时间都无法满足该 group，则返回 ``None``。
-        :rtype: Optional[Tuple[int, Dict[int, DeliveryCapacity]]]
-        :功能: 按优先级尝试不同的结束时间，优先贴近目标结束时间，不可行时优先提前，最后才允许延后。
         """
         max_slot: int = self.max_slot
         preferred_finishes: List[int] = list(
@@ -102,18 +86,14 @@ class ESDScheduler:
         self, group: Group, availability: List[int], finish_time: int
     ) -> Optional[Tuple[int, Dict[int, DeliveryCapacity]]]:
         """检查某个候选结束时间是否可行，并完成对应时间窗的产能分配。
+        从候选结束时间向前倒推，检查能否凑齐该 group 所需的体积和件数，并在可行时把对应时间片的垛口数扣减掉。
 
         :param group: 当前待分配的分组。
-        :type group: Group
         :param availability: 各时间片剩余垛口数，会在确认分配时被原地修改。
-        :type availability: List[int]
         :param finish_time: 本次尝试的候选结束时间。
-        :type finish_time: int
         :returns: 成功时返回 ``(最早占用开始时间, 时间片产能占用明细)``；若该结束时间不可行，则返回 ``None``。
-        :rtype: Optional[Tuple[int, Dict[int, DeliveryCapacity]]]
-        :功能: 从候选结束时间向前倒推，检查能否凑齐该 group 所需的体积和件数，并在可行时把对应时间片的垛口数扣减掉。
         """
-        capacities: List[DeliveryCapacity] = self.esd_schedule_data.delivery_capacities
+        capacities: List[DeliveryCapacity] = self.esdata.delivery_capacities
         start_time: int = finish_time
         total_vol: float = 0.0
         total_pc: float = 0.0
