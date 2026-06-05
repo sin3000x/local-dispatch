@@ -1,3 +1,5 @@
+from typing import List
+
 from dto.esd_schedule_data import DeliveryCapacity, ESDScheduleInput, ESDScheduleOutput
 
 
@@ -11,12 +13,18 @@ class ESDScheduler:
         # 仍相同则更早创建的 group 优先。
         groups = sorted(
             self.esd_schedule_data.groups,
-            key=lambda group: (group.target_finish_time, group.priority, group.create_time),
+            key=lambda group: (
+                group.target_finish_time,
+                group.priority,
+                group.create_time,
+            ),
         )
 
         # availability[i] 表示第 i 个时间片还剩余多少个垛口可用。
         # 后续每成功安排一个 group，就会把它占用到的时间片垛口数减 1。
-        availability = [capacity.dock_num for capacity in self.esd_schedule_data.delivery_capacities]
+        availability: List[int] = [
+            capacity.dock_num for capacity in self.esd_schedule_data.delivery_capacities
+        ]
         output = ESDScheduleOutput()
 
         for group in groups:
@@ -33,9 +41,15 @@ class ESDScheduler:
         # 3. 最后才考虑更晚的结束时间。
         max_slot = len(self.esd_schedule_data.delivery_capacities) - 1
         preferred_finishes = list(
-            range(min(group.target_finish_time, max_slot), group.earliest_load_time - 1, -1)
+            range(
+                min(group.target_finish_time, max_slot),
+                group.earliest_load_time - 1,
+                -1,
+            )
         )
-        preferred_finishes.extend(range(min(group.target_finish_time + 1, max_slot), max_slot + 1))
+        preferred_finishes.extend(
+            range(min(group.target_finish_time + 1, max_slot), max_slot + 1)
+        )
 
         for finish_time in preferred_finishes:
             start_time, usage = self._find_window(group, availability, finish_time)
@@ -101,4 +115,3 @@ class ESDScheduler:
 
         # 返回的是“最后一个被占用的时刻”，也就是结束时间。
         return start_time, usage
-
