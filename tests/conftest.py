@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 PROJECT_DIR = ROOT / "local-dispatch"
 SRC_DIR = PROJECT_DIR / "src"
@@ -14,3 +16,22 @@ TESTS_DIR = ROOT / "tests"
 for path in (str(TESTS_DIR), str(PROJECT_DIR), str(SRC_DIR)):
     if path not in sys.path:
         sys.path.insert(0, path)
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--plot",
+        action="store_true",
+        default=False,
+        help="Show Plotly figures during tests.",
+    )
+
+
+@pytest.fixture(autouse=True)
+def suppress_plotly_show_by_default(request, monkeypatch):
+    if request.config.getoption("--plot"):
+        return
+
+    import tests.helpers.esd_schedule_viz as viz
+
+    monkeypatch.setattr(viz.go.Figure, "show", lambda *args, **kwargs: None, raising=False)
