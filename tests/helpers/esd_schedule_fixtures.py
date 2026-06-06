@@ -41,7 +41,8 @@ def build_sample_delivery_capacities() -> List[DeliveryCapacity]:
         DeliveryCapacity(vol_per_dock=10.0, pc_per_dock=5, dock_num=2),
         DeliveryCapacity(vol_per_dock=12.0, pc_per_dock=6, dock_num=1),
         DeliveryCapacity(vol_per_dock=12.0, pc_per_dock=6, dock_num=1),
-        DeliveryCapacity(vol_per_dock=8.0, pc_per_dock=4, dock_num=3),
+        DeliveryCapacity(vol_per_dock=8.0, pc_per_dock=5, dock_num=3),
+        DeliveryCapacity(vol_per_dock=8.0, pc_per_dock=5, dock_num=3),
     ]
 
 

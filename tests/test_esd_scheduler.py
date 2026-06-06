@@ -1,5 +1,7 @@
 from src.algo.esd_schedule import ESDScheduler
 from src.dto.esd_schedule_data import DeliveryCapacity, ESDScheduleInput, Group
+from tests.helpers.esd_schedule_fixtures import build_sample_schedule_input
+from tests.helpers.esd_schedule_viz import plot_esd_schedule
 
 
 def build_input(groups, capacities, time_unit_in_minutes=30):
@@ -143,3 +145,14 @@ def test_schedule_respects_dock_capacity_for_same_slot():
     assert output.capacity_usage["g-1"][0].dock_num == 1
     assert output.capacity_usage["g-2"][0].dock_num == 1
     assert output.capacity_usage["g-3"][1].dock_num == 1
+
+
+def test_schedule_can_show_visualization_when_run_standalone(request):
+    schedule_input = build_sample_schedule_input()
+    output = ESDScheduler(schedule_input).schedule()
+    assert output is not None
+
+    # 当 pytest 只收集到当前这一个测试时，认为是在单独运行可视化测试，自动打开交互图。
+    # 跑完整测试套件时不会弹窗，避免阻塞 CI 或日常测试。
+    show_plot = len(request.session.items) == 1
+    plot_esd_schedule(schedule_input, output, show=show_plot)
