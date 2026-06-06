@@ -98,6 +98,41 @@ def plot_esd_schedule(
                 line={"color": "#CBD5E1", "width": 1},
                 layer="below",
             )
+            slot_capacity = schedule_input.delivery_capacities[slot] if slot < len(schedule_input.delivery_capacities) else None
+            if slot_capacity is not None and dock <= dock_num:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[slot],
+                        y=[dock],
+                        mode="markers",
+                        marker={"size": 82, "color": "rgba(0,0,0,0)", "line": {"width": 0}},
+                        hovertemplate=(
+                            f"<b>背景信息</b><br>"
+                            f"时间段: {slot_label}<br>"
+                            f"垛口: {dock}<br>"
+                            f"总产能 vol: {slot_capacity.vol_per_dock}<br>"
+                            f"总产能 pc: {slot_capacity.pc_per_dock}<extra></extra>"
+                        ),
+                        showlegend=False,
+                    )
+                )
+            elif slot_capacity is not None:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[slot],
+                        y=[dock],
+                        mode="markers",
+                        marker={"size": 82, "color": "rgba(0,0,0,0)", "line": {"width": 0}},
+                        hovertemplate=(
+                            f"<b>背景信息</b><br>"
+                            f"时间段: {slot_label}<br>"
+                            f"垛口: {dock}<br>"
+                            f"该时刻该垛口不可用<extra></extra>"
+                        ),
+                        showlegend=False,
+                    )
+                )
+
             if dock > dock_num:
                 fig.add_shape(
                     type="rect",
@@ -128,7 +163,7 @@ def plot_esd_schedule(
             cumulative_vol = 0.0
             cumulative_pc = 0.0
 
-            for idx, (group_id, _, _) in enumerate(slot_usage):
+            for group_id, _, _ in slot_usage:
                 group = groups.get(group_id)
                 usage = schedule_output.capacity_usage[group_id][slot]
                 color = group_colors[group_id]
@@ -188,8 +223,8 @@ def plot_esd_schedule(
                             f"<b>{group_id}</b><br>"
                             f"时间段: {slot_label}<br>"
                             f"垛口: {dock}<br>"
-                            f"vol_per_dock: {usage.vol_per_dock}<br>"
-                            f"pc_per_dock: {usage.pc_per_dock}<br>"
+                            f"组内占用 vol_per_dock: {usage.vol_per_dock}<br>"
+                            f"组内占用 pc_per_dock: {usage.pc_per_dock}<br>"
                             f"目标完成时间: {schedule_output.groups.get(group_id)}<br>"
                             f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
                             f"target_finish_time: {group.target_finish_time if group else None}<br>"

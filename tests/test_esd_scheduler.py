@@ -238,3 +238,52 @@ def test_visualization_non_overlapping_segments_with_multiple_groups_in_same_tim
     assert bottom_bars[1]["x1"] == bottom_bars[2]["x0"]
 
     plot_esd_schedule(es_input, output, show=True)
+
+
+def test_visualization_background_hover_shows_slot_total_capacity():
+    groups = [
+        Group(
+            group_id="g-1",
+            earliest_load_time=0,
+            target_finish_time=0,
+            vol=2,
+            pc=2,
+            priority=1,
+            create_time=0,
+        )
+    ]
+    capacities = [DeliveryCapacity(vol_per_dock=12, pc_per_dock=34, dock_num=1)]
+
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+    fig = plot_esd_schedule(es_input, output, show=False)
+
+    background_hover_traces = [trace for trace in fig.data if trace.hovertemplate and "总产能 vol" in trace.hovertemplate]
+    assert background_hover_traces
+    assert "总产能 vol: 12" in background_hover_traces[0].hovertemplate
+    assert "总产能 pc: 34" in background_hover_traces[0].hovertemplate
+
+
+def test_visualization_background_hover_exists_for_unused_dock_area():
+    groups = [
+        Group(
+            group_id="g-1",
+            earliest_load_time=0,
+            target_finish_time=0,
+            vol=2,
+            pc=2,
+            priority=1,
+            create_time=0,
+        )
+    ]
+    capacities = [
+        DeliveryCapacity(vol_per_dock=12, pc_per_dock=34, dock_num=1),
+        DeliveryCapacity(vol_per_dock=12, pc_per_dock=34, dock_num=2),
+    ]
+
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+    fig = plot_esd_schedule(es_input, output, show=False)
+
+    unavailable_hover_traces = [trace for trace in fig.data if trace.hovertemplate and "该时刻该垛口不可用" in trace.hovertemplate]
+    assert unavailable_hover_traces
