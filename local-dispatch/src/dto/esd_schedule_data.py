@@ -34,6 +34,10 @@ class ESDScheduleInput:
     # 发货产能列表，从第一天的 0 点开始
     delivery_capacities: List[DeliveryCapacity] = field(default_factory=list)
 
+    def __post_init__(self):
+        # 计算每天的时间单位数量
+        self.daily_time_units: int = 24 * 60 // self.time_unit_in_minutes
+
 
 @dataclass
 class ESDScheduleOutput:
