@@ -1,6 +1,6 @@
 from typing import List
 
-from src.dto.esd_schedule_data import DeliveryCapacity, ESDScheduleInput, Group
+from src.dto.esd_schedule_data import DeliveryCapacity, ESDScheduleInput, Group  # pyright: ignore[reportMissingImports]
 
 
 def build_sample_groups() -> List[Group]:

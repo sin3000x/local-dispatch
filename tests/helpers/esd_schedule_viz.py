@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple
 
 import plotly.graph_objects as go
 
-from dto.esd_schedule_data import ESDScheduleInput, ESDScheduleOutput
+from dto.esd_schedule_data import ESDScheduleInput, ESDScheduleOutput, DeliveryCapacity  # pyright: ignore[reportMissingImports]
 
 
 def _collect_time_slots(
