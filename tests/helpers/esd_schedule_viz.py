@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Tuple
 
 import plotly.graph_objects as go
 
-from src.dto.esd_schedule_data import ESDScheduleInput, ESDScheduleOutput
+from dto.esd_schedule_data import ESDScheduleInput, ESDScheduleOutput
 
 
 def _collect_time_slots(
@@ -39,12 +39,12 @@ def _group_lookup(schedule_input: ESDScheduleInput):
     return {group.group_id: group for group in schedule_input.groups}
 
 
-def _slot_dock_assignments(schedule_output: ESDScheduleOutput) -> Dict[int, List[Tuple[str, int, int]]]:
-    assignments: Dict[int, List[Tuple[str, int, int]]] = defaultdict(list)
+def _slot_dock_assignments(schedule_output: ESDScheduleOutput) -> Dict[int, Dict[int, List[Tuple[str, int, DeliveryCapacity]]]]:
+    assignments: Dict[int, Dict[int, List[Tuple[str, int, DeliveryCapacity]]]] = defaultdict(lambda: defaultdict(list))
     for group_id, usage in schedule_output.capacity_usage.items():
         for slot, capacity in usage.items():
             for dock_idx in range(capacity.dock_num):
-                assignments[slot].append((group_id, dock_idx, capacity.dock_num))
+                assignments[slot][dock_idx].append((group_id, dock_idx, capacity))
     return assignments
 
 
@@ -112,76 +112,93 @@ def plot_esd_schedule(
                 )
                 continue
 
-            cells = [cell for cell in assignments.get(slot, []) if cell[1] == dock - 1]
+            cells = assignments.get(slot, {}).get(dock - 1, [])
             if not cells:
                 continue
 
-            group_id, _, _ = cells[0]
-            group = groups.get(group_id)
-            usage = schedule_output.capacity_usage[group_id][slot]
-            volume_ratio = min(1.0, usage.vol_per_dock / capacity.vol_per_dock) if capacity and capacity.vol_per_dock else 0.0
-            pc_ratio = min(1.0, usage.pc_per_dock / capacity.pc_per_dock) if capacity and capacity.pc_per_dock else 0.0
-            color = group_colors[group_id]
+            slot_usage = sorted(cells, key=lambda item: item[0])
+            bar_padding = 0.03
+            bar_left = left + bar_padding
+            bar_right = right - bar_padding
+            bar_width = bar_right - bar_left
 
-            fig.add_shape(
-                type="rect",
-                x0=left,
-                x1=right,
-                y0=mid,
-                y1=top,
-                line={"color": color, "width": 1},
-                fillcolor=color,
-                layer="above",
-                opacity=max(0.25, 0.25 + 0.65 * volume_ratio),
-            )
-            fig.add_shape(
-                type="rect",
-                x0=left,
-                x1=right,
-                y0=bottom,
-                y1=mid,
-                line={"color": color, "width": 1},
-                fillcolor=color,
-                layer="above",
-                opacity=max(0.25, 0.25 + 0.65 * pc_ratio),
-            )
+            slot_capacity = schedule_input.delivery_capacities[slot]
+            total_vol_capacity = slot_capacity.vol_per_dock
+            total_pc_capacity = slot_capacity.pc_per_dock
+            cumulative_vol = 0.0
+            cumulative_pc = 0.0
 
-            fig.add_annotation(
-                x=slot,
-                y=dock + 0.22,
-                text=f"{group_id}<br>vol {usage.vol_per_dock}",
-                showarrow=False,
-                font={"color": "white", "size": 10},
-            )
-            fig.add_annotation(
-                x=slot,
-                y=dock - 0.22,
-                text=f"{group_id}<br>pc {usage.pc_per_dock}",
-                showarrow=False,
-                font={"color": "white", "size": 10},
-            )
+            for idx, (group_id, _, _) in enumerate(slot_usage):
+                group = groups.get(group_id)
+                usage = schedule_output.capacity_usage[group_id][slot]
+                color = group_colors[group_id]
 
-            fig.add_trace(
-                go.Scatter(
-                    x=[slot],
-                    y=[dock],
-                    mode="markers",
-                    marker={"size": 46, "color": "rgba(0,0,0,0)"},
-                    hovertemplate=(
-                        f"<b>{group_id}</b><br>"
-                        f"时间段: {slot_label}<br>"
-                        f"垛口: {dock}<br>"
-                        f"vol_per_dock: {usage.vol_per_dock}<br>"
-                        f"pc_per_dock: {usage.pc_per_dock}<br>"
-                        f"目标完成时间: {schedule_output.groups.get(group_id)}<br>"
-                        f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
-                        f"target_finish_time: {group.target_finish_time if group else None}<br>"
-                        f"priority: {group.priority if group else None}<br>"
-                        f"create_time: {group.create_time if group else None}<extra></extra>"
-                    ),
-                    showlegend=False,
+                vol_ratio = usage.vol_per_dock / total_vol_capacity if total_vol_capacity else 0.0
+                pc_ratio = usage.pc_per_dock / total_pc_capacity if total_pc_capacity else 0.0
+                vol_x0 = bar_left + bar_width * cumulative_vol
+                vol_x1 = bar_left + bar_width * min(1.0, cumulative_vol + vol_ratio)
+                pc_x0 = bar_left + bar_width * cumulative_pc
+                pc_x1 = bar_left + bar_width * min(1.0, cumulative_pc + pc_ratio)
+                cumulative_vol = min(1.0, cumulative_vol + vol_ratio)
+                cumulative_pc = min(1.0, cumulative_pc + pc_ratio)
+
+                fig.add_shape(
+                    type="rect",
+                    x0=vol_x0,
+                    x1=vol_x1,
+                    y0=mid + 0.03,
+                    y1=top - 0.03,
+                    line={"color": color, "width": 1},
+                    fillcolor=color,
+                    layer="above",
                 )
-            )
+                fig.add_shape(
+                    type="rect",
+                    x0=pc_x0,
+                    x1=pc_x1,
+                    y0=bottom + 0.03,
+                    y1=mid - 0.03,
+                    line={"color": color, "width": 1},
+                    fillcolor=color,
+                    layer="above",
+                )
+
+                fig.add_annotation(
+                    x=(vol_x0 + vol_x1) / 2,
+                    y=dock + 0.22,
+                    text=f"{group_id}<br>vol {usage.vol_per_dock}",
+                    showarrow=False,
+                    font={"color": "white", "size": 10},
+                )
+                fig.add_annotation(
+                    x=(pc_x0 + pc_x1) / 2,
+                    y=dock - 0.22,
+                    text=f"{group_id}<br>pc {usage.pc_per_dock}",
+                    showarrow=False,
+                    font={"color": "white", "size": 10},
+                )
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=[(vol_x0 + vol_x1) / 2],
+                        y=[dock],
+                        mode="markers",
+                        marker={"size": 46, "color": "rgba(0,0,0,0)"},
+                        hovertemplate=(
+                            f"<b>{group_id}</b><br>"
+                            f"时间段: {slot_label}<br>"
+                            f"垛口: {dock}<br>"
+                            f"vol_per_dock: {usage.vol_per_dock}<br>"
+                            f"pc_per_dock: {usage.pc_per_dock}<br>"
+                            f"目标完成时间: {schedule_output.groups.get(group_id)}<br>"
+                            f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
+                            f"target_finish_time: {group.target_finish_time if group else None}<br>"
+                            f"priority: {group.priority if group else None}<br>"
+                            f"create_time: {group.create_time if group else None}<extra></extra>"
+                        ),
+                        showlegend=False,
+                    )
+                )
 
     fig.update_layout(
         title="ESD 排产交互式产能占用图",
