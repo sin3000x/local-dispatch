@@ -21,18 +21,7 @@ def _collect_time_slots(
 
 
 def _format_slot_range(slot: int, time_unit_in_minutes: int) -> str:
-    start_total_minutes = slot * time_unit_in_minutes
-    end_total_minutes = start_total_minutes + time_unit_in_minutes
-
-    start_minute_of_day = start_total_minutes % (24 * 60)
-    end_minute_of_day = end_total_minutes % (24 * 60)
-
-    start_hour = start_minute_of_day // 60
-    start_minute = start_minute_of_day % 60
-    end_hour = end_minute_of_day // 60
-    end_minute = end_minute_of_day % 60
-
-    return f"{start_hour:02d}:{start_minute:02d}~{end_hour:02d}:{end_minute:02d}"
+    return str(slot)
 
 
 def _group_lookup(schedule_input: ESDScheduleInput):
@@ -100,37 +89,31 @@ def plot_esd_schedule(
             )
             slot_capacity = schedule_input.delivery_capacities[slot] if slot < len(schedule_input.delivery_capacities) else None
             if slot_capacity is not None and dock <= dock_num:
-                fig.add_trace(
-                    go.Scatter(
-                        x=[slot],
-                        y=[dock],
-                        mode="markers",
-                        marker={"size": 82, "color": "rgba(0,0,0,0)", "line": {"width": 0}},
-                        hovertemplate=(
-                            f"<b>背景信息</b><br>"
-                            f"时间段: {slot_label}<br>"
-                            f"垛口: {dock}<br>"
-                            f"总产能 vol: {slot_capacity.vol_per_dock}<br>"
-                            f"总产能 pc: {slot_capacity.pc_per_dock}<extra></extra>"
-                        ),
-                        showlegend=False,
-                    )
+                fig.add_annotation(
+                    x=slot,
+                    y=dock + 0.34,
+                    text=(
+                        f"<b>vol</b> {slot_capacity.vol_per_dock} &nbsp;&nbsp;"
+                        f"<b>pc</b> {slot_capacity.pc_per_dock}"
+                    ),
+                    showarrow=False,
+                    font={"color": "#334155", "size": 10},
+                    bgcolor="rgba(255,255,255,0.9)",
+                    bordercolor="#CBD5E1",
+                    borderwidth=1,
+                    borderpad=2,
                 )
             elif slot_capacity is not None:
-                fig.add_trace(
-                    go.Scatter(
-                        x=[slot],
-                        y=[dock],
-                        mode="markers",
-                        marker={"size": 82, "color": "rgba(0,0,0,0)", "line": {"width": 0}},
-                        hovertemplate=(
-                            f"<b>背景信息</b><br>"
-                            f"时间段: {slot_label}<br>"
-                            f"垛口: {dock}<br>"
-                            f"该时刻该垛口不可用<extra></extra>"
-                        ),
-                        showlegend=False,
-                    )
+                fig.add_annotation(
+                    x=slot,
+                    y=dock + 0.34,
+                    text="该时刻该垛口不可用",
+                    showarrow=False,
+                    font={"color": "#64748B", "size": 10},
+                    bgcolor="rgba(255,255,255,0.9)",
+                    bordercolor="#CBD5E1",
+                    borderwidth=1,
+                    borderpad=2,
                 )
 
             if dock > dock_num:
