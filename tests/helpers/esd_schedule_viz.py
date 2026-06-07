@@ -19,6 +19,7 @@ def _collect_time_slots(
         slots.update(usage.keys())
     return sorted(slots)
 
+
 def _format_slot_range(slot: int, time_unit_in_minutes: int) -> str:
     start_total_minutes = slot * time_unit_in_minutes
     end_total_minutes = start_total_minutes + time_unit_in_minutes
@@ -34,17 +35,51 @@ def _format_slot_range(slot: int, time_unit_in_minutes: int) -> str:
     return f"<b>{slot}</b><br>{start_hour:02d}:{start_minute:02d}~{end_hour:02d}:{end_minute:02d}"
 
 
-
 def _group_lookup(schedule_input: ESDScheduleInput):
     return {group.group_id: group for group in schedule_input.groups}
 
 
-def _slot_dock_assignments(schedule_output: ESDScheduleOutput) -> Dict[int, Dict[int, List[Tuple[str, int, DeliveryCapacity]]]]:
-    assignments: Dict[int, Dict[int, List[Tuple[str, int, DeliveryCapacity]]]] = defaultdict(lambda: defaultdict(list))
+def _group_slot_ranges(schedule_output: ESDScheduleOutput) -> Dict[str, Tuple[int, int]]:
+    ranges: Dict[str, Tuple[int, int]] = {}
     for group_id, usage in schedule_output.capacity_usage.items():
+        if not usage:
+            continue
+        slots = sorted(usage.keys())
+        ranges[group_id] = (slots[0], slots[-1])
+    return ranges
+
+
+def _slot_dock_assignments(
+    schedule_input: ESDScheduleInput, schedule_output: ESDScheduleOutput
+) -> Dict[int, Dict[int, List[Tuple[str, DeliveryCapacity]]]]:
+    assignments: Dict[int, Dict[int, List[Tuple[str, DeliveryCapacity]]]] = defaultdict(lambda: defaultdict(list))
+    dock_usage: Dict[int, List[Optional[str]]] = {
+        slot: [None] * capacity.dock_num for slot, capacity in enumerate(schedule_input.delivery_capacities)
+    }
+    group_ranges = _group_slot_ranges(schedule_output)
+
+    for group_id, (start_slot, end_slot) in sorted(group_ranges.items(), key=lambda item: (item[1][1], item[1][0], item[0])):
+        usage = schedule_output.capacity_usage[group_id]
+        dock_num_candidates = max(
+            (schedule_input.delivery_capacities[slot].dock_num for slot in usage.keys()),
+            default=1,
+        )
+        assigned_dock = None
+        for dock_idx in range(dock_num_candidates):
+            if all(
+                dock_idx < len(dock_usage[slot]) and dock_usage[slot][dock_idx] is None
+                for slot in range(start_slot, end_slot + 1)
+            ):
+                assigned_dock = dock_idx
+                break
+
+        if assigned_dock is None:
+            assigned_dock = 0
+
         for slot, capacity in usage.items():
-            for dock_idx in range(capacity.dock_num):
-                assignments[slot][dock_idx].append((group_id, dock_idx, capacity))
+            dock_usage[slot][assigned_dock] = group_id
+            assignments[slot][assigned_dock].append((group_id, capacity))
+
     return assignments
 
 
@@ -63,7 +98,7 @@ def plot_esd_schedule(
 
     slots = _collect_time_slots(schedule_input, schedule_output)
     groups = _group_lookup(schedule_input)
-    assignments = _slot_dock_assignments(schedule_output)
+    assignments = _slot_dock_assignments(schedule_input, schedule_output)
     max_docks = max([c.dock_num for c in schedule_input.delivery_capacities] + [1])
     palette = ["#2563EB", "#DC2626", "#16A34A", "#9333EA", "#EA580C", "#0891B2", "#BE123C", "#4F46E5"]
     group_ids = list(schedule_output.capacity_usage.keys())
@@ -74,7 +109,6 @@ def plot_esd_schedule(
     for slot in slots:
         capacity = schedule_input.delivery_capacities[slot] if slot < len(schedule_input.delivery_capacities) else None
         dock_num = capacity.dock_num if capacity else max_docks
-        slot_label = _format_slot_range(slot, schedule_input.time_unit_in_minutes)
         for dock in range(1, max_docks + 1):
             left, right = slot - 0.45, slot + 0.45
             bottom, top = dock - 0.4, dock + 0.4
@@ -145,7 +179,6 @@ def plot_esd_schedule(
             if not cells:
                 continue
 
-            slot_usage = sorted(cells, key=lambda item: item[0])
             bar_padding = 0.03
             bar_left = left + bar_padding
             bar_right = right - bar_padding
@@ -157,9 +190,8 @@ def plot_esd_schedule(
             cumulative_vol = 0.0
             cumulative_pc = 0.0
 
-            for group_id, _, _ in slot_usage:
+            for group_id, usage in cells:
                 group = groups.get(group_id)
-                usage = schedule_output.capacity_usage[group_id][slot]
                 color = group_colors[group_id]
 
                 vol_ratio = usage.vol_per_dock / total_vol_capacity if total_vol_capacity else 0.0
@@ -217,7 +249,8 @@ def plot_esd_schedule(
                             f"<b>{group_id}</b><br>"
                             f"体积占用: {usage.vol_per_dock}<br>"
                             f"件数占用: {usage.pc_per_dock}<br>"
-                            f"完成时间: {schedule_output.groups.get(group_id)}<br>"
+                            f"result: {schedule_output.groups.get(group_id)}<br>"
+                            f"---<br>"
                             f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
                             f"target_finish_time: {group.target_finish_time if group else None}<br>"
                             f"priority: {group.priority if group else None}<br>"
