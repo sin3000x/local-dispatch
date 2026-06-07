@@ -19,9 +19,20 @@ def _collect_time_slots(
         slots.update(usage.keys())
     return sorted(slots)
 
-
 def _format_slot_range(slot: int, time_unit_in_minutes: int) -> str:
-    return str(slot)
+    start_total_minutes = slot * time_unit_in_minutes
+    end_total_minutes = start_total_minutes + time_unit_in_minutes
+
+    start_minute_of_day = start_total_minutes % (24 * 60)
+    end_minute_of_day = end_total_minutes % (24 * 60)
+
+    start_hour = start_minute_of_day // 60
+    start_minute = start_minute_of_day % 60
+    end_hour = end_minute_of_day // 60
+    end_minute = end_minute_of_day % 60
+
+    return f"<b>{slot}</b><br>{start_hour:02d}:{start_minute:02d}~{end_hour:02d}:{end_minute:02d}"
+
 
 
 def _group_lookup(schedule_input: ESDScheduleInput):
@@ -204,11 +215,9 @@ def plot_esd_schedule(
                         marker={"size": 46, "color": "rgba(0,0,0,0)"},
                         hovertemplate=(
                             f"<b>{group_id}</b><br>"
-                            f"时间段: {slot_label}<br>"
-                            f"垛口: {dock}<br>"
-                            f"组内占用 vol_per_dock: {usage.vol_per_dock}<br>"
-                            f"组内占用 pc_per_dock: {usage.pc_per_dock}<br>"
-                            f"目标完成时间: {schedule_output.groups.get(group_id)}<br>"
+                            f"体积占用: {usage.vol_per_dock}<br>"
+                            f"件数占用: {usage.pc_per_dock}<br>"
+                            f"完成时间: {schedule_output.groups.get(group_id)}<br>"
                             f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
                             f"target_finish_time: {group.target_finish_time if group else None}<br>"
                             f"priority: {group.priority if group else None}<br>"

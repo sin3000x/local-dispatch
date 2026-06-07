@@ -19,7 +19,7 @@ def test_schedule_sorts_by_target_priority_and_create_time(show_plot):
             group_id="g-3",
             earliest_load_time=0,
             target_finish_time=3,
-            vol=2,
+            vol=5,
             pc=2,
             priority=2,
             create_time=2,
