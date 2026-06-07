@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
+from pprint import pprint
 from typing import List, NamedTuple, Dict
 
 
@@ -13,6 +14,9 @@ class Group:
     pc: float  # 件数
     priority: int  # 优先级，数字越小优先级越高
     create_time: int  # 创建时间
+
+    def pprint(self) -> None:
+        pprint(asdict(self), sort_dicts=False)
 
 
 class DeliveryCapacity(NamedTuple):
@@ -38,6 +42,9 @@ class ESDScheduleInput:
         # 计算每天的时间单位数量
         self.daily_time_units: int = 24 * 60 // self.time_unit_in_minutes
 
+    def pprint(self) -> None:
+        pprint(asdict(self), sort_dicts=False)
+
 
 @dataclass
 class ESDScheduleOutput:
@@ -47,3 +54,6 @@ class ESDScheduleOutput:
     groups: Dict[str, int] = field(default_factory=dict)
     # 每个分组在每个时间点占用的产能，如 {group1: {0: (10m^3, 1pc, 1)}, {1: (5m^3, 0pc, 1)}}
     capacity_usage: Dict[str, Dict[int, DeliveryCapacity]] = field(default_factory=dict)
+
+    def pprint(self) -> None:
+        pprint(asdict(self), sort_dicts=False)
