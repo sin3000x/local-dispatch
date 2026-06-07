@@ -13,7 +13,7 @@ def build_input(groups, capacities, time_unit_in_minutes=30):
     )
 
 
-def test_schedule_sorts_by_target_priority_and_create_time():
+def test_schedule_sorts_by_target_priority_and_create_time(show_plot):
     groups = [
         Group(
             group_id="g-3",
@@ -50,12 +50,15 @@ def test_schedule_sorts_by_target_priority_and_create_time():
         DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=1),
     ]
 
-    output = ESDScheduler(build_input(groups, capacities)).schedule()
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+
+    plot_esd_schedule(es_input, output, show=show_plot)
 
     assert list(output.groups.keys()) == ["g-2", "g-1", "g-3"]
 
 
-def test_schedule_prefers_target_time_when_feasible():
+def test_schedule_prefers_target_time_when_feasible(show_plot):
     groups = [
         Group(
             group_id="g-1",
@@ -73,7 +76,10 @@ def test_schedule_prefers_target_time_when_feasible():
         DeliveryCapacity(vol_per_dock=5, pc_per_dock=5, dock_num=1),
     ]
 
-    output = ESDScheduler(build_input(groups, capacities)).schedule()
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+
+    plot_esd_schedule(es_input, output, show=show_plot)
 
     assert output.groups["g-1"] == 1
     assert set(output.capacity_usage["g-1"].keys()) == {0, 1}
@@ -104,7 +110,7 @@ def test_schedule_prefers_earlier_when_target_is_not_feasible():
     assert set(output.capacity_usage["g-1"].keys()) == {0, 1, 2}
 
 
-def test_schedule_respects_dock_capacity_for_same_slot():
+def test_schedule_respects_dock_capacity_for_same_slot(show_plot):
     groups = [
         Group(
             group_id="g-1",
@@ -139,7 +145,9 @@ def test_schedule_respects_dock_capacity_for_same_slot():
         DeliveryCapacity(vol_per_dock=6, pc_per_dock=6, dock_num=2),
     ]
 
-    output = ESDScheduler(build_input(groups, capacities)).schedule()
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+    plot_esd_schedule(es_input, output, show=show_plot)
 
     # 第 0 个时间片最多只能安排 2 个 group，第三个 group 只能顺延到第 1 个时间片。
     assert output.groups == {"g-1": 0, "g-2": 0, "g-3": 1}
@@ -176,8 +184,9 @@ def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(s
     ]
     capacities = [DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=2)]
 
-    output = ESDScheduler(build_input(groups, capacities)).schedule()
-    fig = plot_esd_schedule(build_input(groups, capacities), output, show=show_plot)
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+    fig = plot_esd_schedule(es_input, output, show=show_plot)
 
     assert output.groups == {"g-1": 0, "g-2": 0}
     assert len(fig.layout.shapes) >= 6
