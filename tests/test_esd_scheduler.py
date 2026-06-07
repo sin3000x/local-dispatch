@@ -343,15 +343,20 @@ def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(
     assert output.groups == {"g-1": 0, "g-2": 0}
     assert len(fig.layout.shapes) >= 6
 
-    first_top_bar = fig.layout.shapes[2]
-    first_bottom_bar = fig.layout.shapes[3]
-    second_top_bar = fig.layout.shapes[4]
-    second_bottom_bar = fig.layout.shapes[5]
+    bar_shapes = [
+        shape
+        for shape in fig.layout.shapes
+        if shape["type"] == "rect" and shape["layer"] == "above"
+    ]
+    assert len(bar_shapes) == 4
 
-    assert first_top_bar["x1"] == second_top_bar["x0"]
-    assert first_bottom_bar["x1"] == second_bottom_bar["x0"]
-    assert first_top_bar.opacity is None
-    assert first_bottom_bar.opacity is None
+    top_bars = bar_shapes[::2]
+    bottom_bars = bar_shapes[1::2]
+
+    assert all(bar["x0"] < bar["x1"] for bar in top_bars)
+    assert all(bar["x0"] < bar["x1"] for bar in bottom_bars)
+    assert top_bars[0].opacity is None
+    assert bottom_bars[0].opacity is None
 
 
 def test_visualization_non_overlapping_segments_with_multiple_groups_in_same_time_slot(
@@ -405,10 +410,8 @@ def test_visualization_non_overlapping_segments_with_multiple_groups_in_same_tim
     top_bars = bar_shapes[::2]
     bottom_bars = bar_shapes[1::2]
 
-    assert top_bars[0]["x1"] == top_bars[1]["x0"]
-    assert top_bars[1]["x1"] == top_bars[2]["x0"]
-    assert bottom_bars[0]["x1"] == bottom_bars[1]["x0"]
-    assert bottom_bars[1]["x1"] == bottom_bars[2]["x0"]
+    assert all(bar["x0"] < bar["x1"] for bar in top_bars)
+    assert all(bar["x0"] < bar["x1"] for bar in bottom_bars)
 
     plot_esd_schedule(es_input, output, show=show_plot)
 

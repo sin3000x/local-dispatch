@@ -14,7 +14,8 @@ def _collect_time_slots(
 ) -> List[int]:
     slots = set(range(len(schedule_input.delivery_capacities)))
     for finish_time in schedule_output.groups.values():
-        slots.add(finish_time)
+        if finish_time is not None:
+            slots.add(finish_time)
     for usage in schedule_output.capacity_usage.values():
         slots.update(usage.keys())
     return sorted(slots)
