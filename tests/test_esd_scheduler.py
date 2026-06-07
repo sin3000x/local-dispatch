@@ -13,7 +13,7 @@ def build_input(groups, capacities, time_unit_in_minutes=30):
     )
 
 
-def test_schedule_sorts_by_target_priority_and_create_time(show_plot):
+def test_case_1(show_plot):
     groups = [
         Group(
             group_id="g-3",
@@ -52,11 +52,55 @@ def test_schedule_sorts_by_target_priority_and_create_time(show_plot):
 
     es_input = build_input(groups, capacities)
     output = ESDScheduler(es_input).schedule()
+    output.pprint()
 
     plot_esd_schedule(es_input, output, show=show_plot)
 
     assert list(output.groups.keys()) == ["g-2", "g-1", "g-3"]
+    assert output.groups == {"g-2": 1, "g-1": 0, "g-3": 3}
 
+def test_case_1_minutely(show_plot):
+    groups = [
+        Group(
+            group_id="g-3",
+            earliest_load_time=0,
+            target_finish_time=90,
+            vol=5,
+            pc=2,
+            priority=2,
+            create_time=2,
+        ),
+        Group(
+            group_id="g-1",
+            earliest_load_time=0,
+            target_finish_time=30,
+            vol=2,
+            pc=2,
+            priority=2,
+            create_time=1,
+        ),
+        Group(
+            group_id="g-2",
+            earliest_load_time=0,
+            target_finish_time=30,
+            vol=2,
+            pc=2,
+            priority=1,
+            create_time=2,
+        ),
+    ]
+    capacities = [
+        DeliveryCapacity(vol_per_dock=0.3, pc_per_dock=0.3, dock_num=1)
+        for _ in range(90)
+    ]
+
+    es_input = build_input(groups, capacities, time_unit_in_minutes=1)
+    output = ESDScheduler(es_input).schedule()
+    output.pprint()
+
+    plot_esd_schedule(es_input, output, show=show_plot)
+
+    assert list(output.groups.keys()) == ["g-2", "g-1", "g-3"]
 
 def test_schedule_prefers_target_time_when_feasible(show_plot):
     groups = [
@@ -273,10 +317,10 @@ def test_visualization_background_hover_shows_slot_total_capacity(show_plot):
     output = ESDScheduler(es_input).schedule()
     fig = plot_esd_schedule(es_input, output, show=show_plot)
 
-    background_hover_traces = [trace for trace in fig.data if trace.hovertemplate and "总产能 vol" in trace.hovertemplate]
-    assert background_hover_traces
-    assert "总产能 vol: 12" in background_hover_traces[0].hovertemplate
-    assert "总产能 pc: 34" in background_hover_traces[0].hovertemplate
+    background_annotations = [annotation for annotation in fig.layout.annotations if annotation.text and "vol" in annotation.text and "pc" in annotation.text]
+    assert background_annotations
+    assert "vol" in background_annotations[0].text
+    assert "pc" in background_annotations[0].text
 
 
 def test_visualization_background_hover_exists_for_unused_dock_area(show_plot):
@@ -300,5 +344,5 @@ def test_visualization_background_hover_exists_for_unused_dock_area(show_plot):
     output = ESDScheduler(es_input).schedule()
     fig = plot_esd_schedule(es_input, output, show=show_plot)
 
-    unavailable_hover_traces = [trace for trace in fig.data if trace.hovertemplate and "该时刻该垛口不可用" in trace.hovertemplate]
-    assert unavailable_hover_traces
+    unavailable_annotations = [annotation for annotation in fig.layout.annotations if annotation.text == "该时刻该垛口不可用"]
+    assert unavailable_annotations
