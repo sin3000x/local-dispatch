@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from pprint import pprint
-from typing import List, NamedTuple, Dict
+from typing import List, NamedTuple, Dict, Optional
 
 
 @dataclass
@@ -51,7 +51,7 @@ class ESDScheduleOutput:
     """算法输出"""
 
     # 分组 id -> 装车完成的时间点
-    groups: Dict[str, int] = field(default_factory=dict)
+    groups: Dict[str, Optional[int]] = field(default_factory=dict)
     # 每个分组在每个时间点占用的产能，如 {group1: {0: (10m^3, 1pc, 1)}, {1: (5m^3, 0pc, 1)}}
     capacity_usage: Dict[str, Dict[int, DeliveryCapacity]] = field(default_factory=dict)
 
