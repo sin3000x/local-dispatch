@@ -1,7 +1,7 @@
 import pytest
 
-from src.algo.esd_schedule import ESDScheduler
-from src.dto.esd_schedule_data import DeliveryCapacity, ESDScheduleInput, Group
+from src.algo.esd_schedule import ESDScheduler  # pyright: ignore[reportMissingImports]
+from src.dto.esd_schedule_data import DeliveryCapacity, ESDScheduleInput, Group  # pyright: ignore[reportMissingImports]
 from tests.helpers.esd_schedule_viz import plot_esd_schedule
 
 
@@ -148,7 +148,12 @@ def test_schedule_respects_dock_capacity_for_same_slot():
     assert output.capacity_usage["g-3"][1].dock_num == 1
 
 
-def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(request):
+@pytest.fixture
+def show_plot(request):
+    return request.config.getoption("--plot")
+
+
+def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(show_plot):
     groups = [
         Group(
             group_id="g-1",
@@ -172,7 +177,7 @@ def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(r
     capacities = [DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=2)]
 
     output = ESDScheduler(build_input(groups, capacities)).schedule()
-    fig = plot_esd_schedule(build_input(groups, capacities), output, show=request.config.getoption("--plot"))
+    fig = plot_esd_schedule(build_input(groups, capacities), output, show=show_plot)
 
     assert output.groups == {"g-1": 0, "g-2": 0}
     assert len(fig.layout.shapes) >= 6
@@ -188,7 +193,7 @@ def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(r
     assert first_bottom_bar.opacity is None
 
 
-def test_visualization_non_overlapping_segments_with_multiple_groups_in_same_time_slot(request):
+def test_visualization_non_overlapping_segments_with_multiple_groups_in_same_time_slot(show_plot):
     groups = [
         Group(
             group_id="g-1",
@@ -222,7 +227,7 @@ def test_visualization_non_overlapping_segments_with_multiple_groups_in_same_tim
 
     es_input = build_input(groups, capacities)
     output = ESDScheduler(es_input).schedule()
-    fig = plot_esd_schedule(es_input, output, show=request.config.getoption("--plot"))
+    fig = plot_esd_schedule(es_input, output, show=show_plot)
 
     assert output.groups == {"g-1": 0, "g-2": 0, "g-3": 0}
 
@@ -238,10 +243,10 @@ def test_visualization_non_overlapping_segments_with_multiple_groups_in_same_tim
     assert bottom_bars[0]["x1"] == bottom_bars[1]["x0"]
     assert bottom_bars[1]["x1"] == bottom_bars[2]["x0"]
 
-    plot_esd_schedule(es_input, output, show=request.config.getoption("--plot"))
+    plot_esd_schedule(es_input, output, show=show_plot)
 
 
-def test_visualization_background_hover_shows_slot_total_capacity(request):
+def test_visualization_background_hover_shows_slot_total_capacity(show_plot):
     groups = [
         Group(
             group_id="g-1",
@@ -257,7 +262,7 @@ def test_visualization_background_hover_shows_slot_total_capacity(request):
 
     es_input = build_input(groups, capacities)
     output = ESDScheduler(es_input).schedule()
-    fig = plot_esd_schedule(es_input, output, show=request.config.getoption("--plot"))
+    fig = plot_esd_schedule(es_input, output, show=show_plot)
 
     background_hover_traces = [trace for trace in fig.data if trace.hovertemplate and "总产能 vol" in trace.hovertemplate]
     assert background_hover_traces
@@ -265,7 +270,7 @@ def test_visualization_background_hover_shows_slot_total_capacity(request):
     assert "总产能 pc: 34" in background_hover_traces[0].hovertemplate
 
 
-def test_visualization_background_hover_exists_for_unused_dock_area(request):
+def test_visualization_background_hover_exists_for_unused_dock_area(show_plot):
     groups = [
         Group(
             group_id="g-1",
@@ -284,7 +289,7 @@ def test_visualization_background_hover_exists_for_unused_dock_area(request):
 
     es_input = build_input(groups, capacities)
     output = ESDScheduler(es_input).schedule()
-    fig = plot_esd_schedule(es_input, output, show=request.config.getoption("--plot"))
+    fig = plot_esd_schedule(es_input, output, show=show_plot)
 
     unavailable_hover_traces = [trace for trace in fig.data if trace.hovertemplate and "该时刻该垛口不可用" in trace.hovertemplate]
     assert unavailable_hover_traces
