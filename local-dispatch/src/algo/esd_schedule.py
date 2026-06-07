@@ -66,10 +66,9 @@ class ESDScheduler:
         )
 
         for finish_time in preferred_finishes:
-            window = self._find_window(group, availability, finish_time)
-            if window is not None:
-                _, usage = window
-                return finish_time, usage
+            usage = self._find_window(group, availability, finish_time)
+            if usage is not None:
+                return max(usage), usage
 
         logger.warning(
             "ESD 调度失败：group=%s, target_finish_time=%s, earliest_load_time=%s, "
@@ -84,7 +83,7 @@ class ESDScheduler:
 
     def _find_window(
         self, group: Group, availability: List[int], finish_time: int
-    ) -> Optional[Tuple[int, Dict[int, DeliveryCapacity]]]:
+    ) -> Optional[Dict[int, DeliveryCapacity]]:
         """检查某个候选结束时间是否可行，并完成对应时间窗的产能分配。
         从候选结束时间向前倒推，检查能否凑齐该 group 所需的体积和件数，并在可行时把对应时间片的垛口数扣减掉。
 
@@ -147,5 +146,5 @@ class ESDScheduler:
                 availability[slot] += 1
             return None
 
-        # 返回的是“最后一个被占用的时刻”，也就是结束时间。
-        return start_time, usage
+        # 返回候选的结束时间，供上层写入输出结果。
+        return usage
