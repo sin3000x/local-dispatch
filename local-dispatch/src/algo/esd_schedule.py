@@ -37,9 +37,9 @@ class ESDScheduler:
         for group in groups:
             allocated = self._allocate_group(group, availability)
             if allocated is None:
-                return None
-
-            finish_time, usage = allocated
+                finish_time, usage = None, {}
+            else:
+                finish_time, usage = allocated
             output.groups[group.group_id] = finish_time
             output.capacity_usage[group.group_id] = usage
 
