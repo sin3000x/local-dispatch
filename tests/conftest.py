@@ -27,11 +27,6 @@ def pytest_addoption(parser):
     )
 
 
-@pytest.fixture(autouse=True)
-def suppress_plotly_show_by_default(request, monkeypatch):
-    if request.config.getoption("--plot"):
-        return
-
-    import tests.helpers.esd_schedule_viz as viz
-
-    monkeypatch.setattr(viz.go.Figure, "show", lambda *args, **kwargs: None, raising=False)
+@pytest.fixture
+def show_plot(request):
+    return request.config.getoption("--plot")
