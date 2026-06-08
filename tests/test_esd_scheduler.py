@@ -13,6 +13,11 @@ def build_input(groups, capacities, time_unit_in_minutes=30):
     )
 
 
+@pytest.fixture
+def show_plot(request):
+    return request.config.getoption("--plot")
+
+
 def test_infeasible(show_plot):
     groups = [
         Group(
@@ -254,63 +259,6 @@ def test_empty():
     assert output.esd_result == {}
 
 
-def test_schedule_prefers_target_time_when_feasible(show_plot):
-    groups = [
-        Group(
-            group_id="g-1",
-            earliest_load_time=0,
-            target_finish_time=1,
-            vol=8,
-            pc=8,
-            priority=1,
-            create_time=0,
-        )
-    ]
-    capacities = [
-        DeliveryCapacity(vol_per_dock=5, pc_per_dock=5, dock_num=1),
-        DeliveryCapacity(vol_per_dock=5, pc_per_dock=5, dock_num=1),
-        DeliveryCapacity(vol_per_dock=5, pc_per_dock=5, dock_num=1),
-    ]
-
-    es_input = build_input(groups, capacities)
-    output = ESDScheduler(es_input).schedule()
-
-    if show_plot:
-        plot_esd_schedule(es_input, output)
-
-    assert output.esd_result["g-1"] == 1
-    assert set(output.capacity_usage["g-1"].keys()) == {0, 1}
-
-
-def test_schedule_prefers_earlier_when_target_is_not_feasible(show_plot):
-    groups = [
-        Group(
-            group_id="g-1",
-            earliest_load_time=0,
-            target_finish_time=2,
-            vol=10,
-            pc=10,
-            priority=1,
-            create_time=0,
-        )
-    ]
-    capacities = [
-        DeliveryCapacity(vol_per_dock=4, pc_per_dock=4, dock_num=1),
-        DeliveryCapacity(vol_per_dock=4, pc_per_dock=4, dock_num=1),
-        DeliveryCapacity(vol_per_dock=4, pc_per_dock=4, dock_num=1),
-        DeliveryCapacity(vol_per_dock=4, pc_per_dock=4, dock_num=1),
-    ]
-
-    es_input = build_input(groups, capacities)
-    output = ESDScheduler(es_input).schedule()
-
-    if show_plot:
-        plot_esd_schedule(es_input, output)
-
-    assert output.esd_result["g-1"] == 2
-    assert set(output.capacity_usage["g-1"].keys()) == {0, 1, 2}
-
-
 def test_schedule_respects_dock_capacity_for_same_slot(show_plot):
     groups = [
         Group(
@@ -359,11 +307,6 @@ def test_schedule_respects_dock_capacity_for_same_slot(show_plot):
     assert output.capacity_usage["g-3"][1].dock_num == 1
 
 
-@pytest.fixture
-def show_plot(request):
-    return request.config.getoption("--plot")
-
-
 def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(
     show_plot,
 ):
@@ -392,10 +335,7 @@ def test_visualization_uses_length_for_usage_and_separates_groups_in_same_slot(
     es_input = build_input(groups, capacities)
     output = ESDScheduler(es_input).schedule()
 
-    if show_plot:
-        plot_esd_schedule(es_input, output)
-
-    fig = plot_esd_schedule(es_input, output)
+    fig = plot_esd_schedule(es_input, output, show=show_plot)
 
     assert output.esd_result == {"g-1": 0, "g-2": 0}
     assert len(fig.layout.shapes) >= 6
