@@ -12,6 +12,7 @@ def build_input(groups, capacities, time_unit_in_minutes=30):
         delivery_capacities=capacities,
     )
 
+
 def test_infeasible(show_plot):
     groups = [
         Group(
@@ -58,6 +59,7 @@ def test_infeasible(show_plot):
 
     assert output.esd_result == {"g-2": 1, "g-1": 0, "g-3": None}
 
+
 def test_two_docks(show_plot):
     groups = [
         Group(
@@ -89,8 +91,7 @@ def test_two_docks(show_plot):
         ),
     ]
     capacities = [
-        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=2)
-        for _ in range(4)
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=2) for _ in range(4)
     ]
 
     es_input = build_input(groups, capacities)
@@ -102,6 +103,7 @@ def test_two_docks(show_plot):
 
     assert list(output.esd_result.keys()) == ["g-2", "g-1", "g-3"]
     assert output.esd_result == {"g-2": 1, "g-1": 1, "g-3": 3}
+
 
 def test_docknum_change(show_plot):
     groups = [
@@ -149,6 +151,7 @@ def test_docknum_change(show_plot):
 
     assert list(output.esd_result.keys()) == ["g-2", "g-1", "g-3"]
     assert output.esd_result == {"g-2": 1, "g-1": 2, "g-3": 3}
+
 
 def test_single_slot(show_plot):
     groups = [
@@ -241,6 +244,14 @@ def test_minutely(show_plot):
         plot_esd_schedule(es_input, output)
 
     assert list(output.esd_result.keys()) == ["g-2", "g-1", "g-3"]
+
+
+def test_empty():
+    es_input = build_input([], [])
+    output = ESDScheduler(es_input).schedule()
+    output.pprint()
+
+    assert output.esd_result == {}
 
 
 def test_schedule_prefers_target_time_when_feasible(show_plot):
