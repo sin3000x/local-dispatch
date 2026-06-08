@@ -58,7 +58,7 @@ def test_infeasible(show_plot):
 
     assert output.esd_result == {"g-2": 1, "g-1": 0, "g-3": None}
 
-def test_case_1_two_docks(show_plot):
+def test_two_docks(show_plot):
     groups = [
         Group(
             group_id="g-3",
@@ -103,8 +103,54 @@ def test_case_1_two_docks(show_plot):
     assert list(output.esd_result.keys()) == ["g-2", "g-1", "g-3"]
     assert output.esd_result == {"g-2": 1, "g-1": 1, "g-3": 3}
 
+def test_docknum_change(show_plot):
+    groups = [
+        Group(
+            group_id="g-3",
+            earliest_load_time=0,
+            target_finish_time=3,
+            vol=5,
+            pc=2,
+            priority=2,
+            create_time=2,
+        ),
+        Group(
+            group_id="g-1",
+            earliest_load_time=0,
+            target_finish_time=1,
+            vol=12,
+            pc=2,
+            priority=2,
+            create_time=1,
+        ),
+        Group(
+            group_id="g-2",
+            earliest_load_time=0,
+            target_finish_time=1,
+            vol=12,
+            pc=2,
+            priority=1,
+            create_time=2,
+        ),
+    ]
+    capacities = [
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=2),
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=1),
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=2),
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=2),
+    ]
 
-def test_case_1(show_plot):
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+    output.pprint()
+
+    if show_plot:
+        plot_esd_schedule(es_input, output)
+
+    assert list(output.esd_result.keys()) == ["g-2", "g-1", "g-3"]
+    assert output.esd_result == {"g-2": 1, "g-1": 2, "g-3": 3}
+
+def test_single_slot(show_plot):
     groups = [
         Group(
             group_id="g-3",
@@ -152,7 +198,7 @@ def test_case_1(show_plot):
     assert output.esd_result == {"g-2": 1, "g-1": 0, "g-3": 3}
 
 
-def test_case_1_minutely(show_plot):
+def test_minutely(show_plot):
     groups = [
         Group(
             group_id="g-3",

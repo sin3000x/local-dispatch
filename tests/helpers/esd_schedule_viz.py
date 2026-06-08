@@ -59,26 +59,30 @@ def _slot_dock_assignments(
     }
     group_ranges = _group_slot_ranges(schedule_output)
 
+    # 按结束时间、开始时间排序，尽量先放置更“紧”的 group，减少后续冲突。
     for group_id, (start_slot, end_slot) in sorted(group_ranges.items(), key=lambda item: (item[1][1], item[1][0], item[0])):
         usage = schedule_output.capacity_usage[group_id]
-        dock_num_candidates = max(
-            (schedule_input.delivery_capacities[slot].dock_num for slot in usage.keys()),
-            default=1,
-        )
-        assigned_dock = None
-        for dock_idx in range(dock_num_candidates):
-            if all(
-                dock_idx < len(dock_usage[slot]) and dock_usage[slot][dock_idx] is None
-                for slot in range(start_slot, end_slot + 1)
-            ):
-                assigned_dock = dock_idx
+        candidate_docks = None
+
+        # 同一个 group 必须始终落在同一个垛口上，因此先找一个在整个时间窗内都可用的垛口。
+        for slot in range(start_slot, end_slot + 1):
+            if slot not in usage:
+                continue
+            slot_dock_count = len(dock_usage.get(slot, []))
+            free_docks = {
+                dock_idx
+                for dock_idx in range(slot_dock_count)
+                if dock_usage[slot][dock_idx] is None
+            }
+            candidate_docks = free_docks if candidate_docks is None else candidate_docks & free_docks
+            if not candidate_docks:
                 break
 
-        if assigned_dock is None:
-            assigned_dock = 0
+        assigned_dock = min(candidate_docks) if candidate_docks else 0
 
-        for slot, capacity in usage.items():
-            dock_usage[slot][assigned_dock] = group_id
+        for slot, capacity in sorted(usage.items()):
+            if assigned_dock < len(dock_usage[slot]):
+                dock_usage[slot][assigned_dock] = group_id
             assignments[slot][assigned_dock].append((group_id, capacity))
 
     return assignments
