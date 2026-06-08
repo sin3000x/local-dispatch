@@ -40,7 +40,7 @@ class ESDScheduler:
                 finish_time, usage = None, {}
             else:
                 finish_time, usage = allocated
-            output.groups[group.group_id] = finish_time
+            output.esd_result[group.group_id] = finish_time
             output.capacity_usage[group.group_id] = usage
 
         return output
