@@ -201,6 +201,9 @@ def plot_esd_schedule(
 
                 vol_ratio = usage.vol_per_dock / total_vol_capacity if total_vol_capacity else 0.0
                 pc_ratio = usage.pc_per_dock / total_pc_capacity if total_pc_capacity else 0.0
+                if vol_ratio == 0.0 and pc_ratio == 0.0:
+                    continue
+
                 vol_x0 = bar_left + bar_width * cumulative_vol
                 vol_x1 = bar_left + bar_width * min(1.0, cumulative_vol + vol_ratio)
                 pc_x0 = bar_left + bar_width * cumulative_pc
@@ -208,62 +211,63 @@ def plot_esd_schedule(
                 cumulative_vol = min(1.0, cumulative_vol + vol_ratio)
                 cumulative_pc = min(1.0, cumulative_pc + pc_ratio)
 
-                fig.add_shape(
-                    type="rect",
-                    x0=vol_x0,
-                    x1=vol_x1,
-                    y0=mid + 0.03,
-                    y1=top - 0.03,
-                    line={"color": color, "width": 1},
-                    fillcolor=color,
-                    layer="above",
-                )
-                fig.add_shape(
-                    type="rect",
-                    x0=pc_x0,
-                    x1=pc_x1,
-                    y0=bottom + 0.03,
-                    y1=mid - 0.03,
-                    line={"color": color, "width": 1},
-                    fillcolor=color,
-                    layer="above",
-                )
-
-                fig.add_annotation(
-                    x=(vol_x0 + vol_x1) / 2,
-                    y=dock + 0.22,
-                    text=f"{group_id}<br>vol {usage.vol_per_dock}",
-                    showarrow=False,
-                    font={"color": "white", "size": 10},
-                )
-                fig.add_annotation(
-                    x=(pc_x0 + pc_x1) / 2,
-                    y=dock - 0.22,
-                    text=f"{group_id}<br>pc {usage.pc_per_dock}",
-                    showarrow=False,
-                    font={"color": "white", "size": 10},
-                )
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=[(vol_x0 + vol_x1) / 2],
-                        y=[dock],
-                        mode="markers",
-                        marker={"size": 46, "color": "rgba(0,0,0,0)"},
-                        hovertemplate=(
-                            f"<b>{group_id}</b><br>"
-                            f"体积占用: {usage.vol_per_dock}<br>"
-                            f"件数占用: {usage.pc_per_dock}<br>"
-                            f"result: {schedule_output.esd_result.get(group_id)}<br>"
-                            f"---<br>"
-                            f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
-                            f"target_finish_time: {group.target_finish_time if group else None}<br>"
-                            f"priority: {group.priority if group else None}<br>"
-                            f"create_time: {group.create_time if group else None}<extra></extra>"
-                        ),
-                        showlegend=False,
+                if vol_ratio > 0:
+                    fig.add_shape(
+                        type="rect",
+                        x0=vol_x0,
+                        x1=vol_x1,
+                        y0=mid + 0.03,
+                        y1=top - 0.03,
+                        line={"color": color, "width": 1},
+                        fillcolor=color,
+                        layer="above",
                     )
-                )
+                    fig.add_annotation(
+                        x=(vol_x0 + vol_x1) / 2,
+                        y=dock + 0.22,
+                        text=f"{group_id}<br>vol {usage.vol_per_dock}",
+                        showarrow=False,
+                        font={"color": "white", "size": 10},
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[(vol_x0 + vol_x1) / 2],
+                            y=[dock],
+                            mode="markers",
+                            marker={"size": 46, "color": "rgba(0,0,0,0)"},
+                            hovertemplate=(
+                                f"<b>{group_id}</b><br>"
+                                f"体积占用: {usage.vol_per_dock}<br>"
+                                f"件数占用: {usage.pc_per_dock}<br>"
+                                f"result: {schedule_output.esd_result.get(group_id)}<br>"
+                                f"---<br>"
+                                f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
+                                f"target_finish_time: {group.target_finish_time if group else None}<br>"
+                                f"priority: {group.priority if group else None}<br>"
+                                f"create_time: {group.create_time if group else None}<extra></extra>"
+                            ),
+                            showlegend=False,
+                        )
+                    )
+
+                if pc_ratio > 0:
+                    fig.add_shape(
+                        type="rect",
+                        x0=pc_x0,
+                        x1=pc_x1,
+                        y0=bottom + 0.03,
+                        y1=mid - 0.03,
+                        line={"color": color, "width": 1},
+                        fillcolor=color,
+                        layer="above",
+                    )
+                    fig.add_annotation(
+                        x=(pc_x0 + pc_x1) / 2,
+                        y=dock - 0.22,
+                        text=f"{group_id}<br>pc {usage.pc_per_dock}",
+                        showarrow=False,
+                        font={"color": "white", "size": 10},
+                    )
 
     fig.update_layout(
         title="ESD 排产交互式产能占用图",
