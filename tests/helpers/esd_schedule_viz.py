@@ -13,7 +13,7 @@ def _collect_time_slots(
     schedule_input: ESDScheduleInput, schedule_output: ESDScheduleOutput
 ) -> List[int]:
     slots = set(range(len(schedule_input.delivery_capacities)))
-    for finish_time in schedule_output.groups.values():
+    for finish_time in schedule_output.esd_result.values():
         if finish_time is not None:
             slots.add(finish_time)
     for usage in schedule_output.capacity_usage.values():
@@ -250,7 +250,7 @@ def plot_esd_schedule(
                             f"<b>{group_id}</b><br>"
                             f"体积占用: {usage.vol_per_dock}<br>"
                             f"件数占用: {usage.pc_per_dock}<br>"
-                            f"result: {schedule_output.groups.get(group_id)}<br>"
+                            f"result: {schedule_output.esd_result.get(group_id)}<br>"
                             f"---<br>"
                             f"earliest_load_time: {group.earliest_load_time if group else None}<br>"
                             f"target_finish_time: {group.target_finish_time if group else None}<br>"
