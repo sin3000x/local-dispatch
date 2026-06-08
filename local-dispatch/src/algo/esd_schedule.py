@@ -1,3 +1,4 @@
+from operator import attrgetter
 from typing import Dict, List, Optional, Tuple
 
 from aipaas.logger_factory import logger
@@ -20,18 +21,17 @@ class ESDScheduler:
         """
         groups: List[Group] = sorted(
             self.esdata.groups,
-            key=lambda group: (
-                group.target_finish_time,
-                group.priority,
-                group.create_time,
-            ),
+            key=attrgetter("target_finish_time", "priority", "create_time"),
         )
 
         # availability[i] 表示第 i 个时间片还剩余多少个垛口可用。
         # 每成功安排一个 group，就把它占用到的时间片垛口数减 1。
+        # fmt: off
         availability: List[int] = [
-            capacity.dock_num for capacity in self.esdata.delivery_capacities
+            capacity.dock_num 
+            for capacity in self.esdata.delivery_capacities
         ]
+        # fmt: on
         output: ESDScheduleOutput = ESDScheduleOutput()
 
         for group in groups:
