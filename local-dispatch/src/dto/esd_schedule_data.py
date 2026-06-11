@@ -42,8 +42,15 @@ class ESDScheduleInput:
         # 计算每天的时间单位数量
         self.daily_time_units: int = 24 * 60 // self.time_unit_in_minutes
 
-    def pprint(self) -> None:
-        pprint(asdict(self), sort_dicts=False)
+    @staticmethod
+    def _delivery_capacity_from_dict(
+        data: Union[DeliveryCapacity, Dict[str, Any], List[Any], Tuple[Any, ...]],
+    ) -> DeliveryCapacity:
+        if isinstance(data, DeliveryCapacity):
+            return data
+        if isinstance(data, dict):
+            return DeliveryCapacity(**data)
+        return DeliveryCapacity(*data)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ESDScheduleInput":
@@ -57,15 +64,8 @@ class ESDScheduleInput:
             ],
         )
 
-    @staticmethod
-    def _delivery_capacity_from_dict(
-        data: Union[DeliveryCapacity, Dict[str, Any], List[Any], Tuple[Any, ...]],
-    ) -> DeliveryCapacity:
-        if isinstance(data, DeliveryCapacity):
-            return data
-        if isinstance(data, dict):
-            return DeliveryCapacity(**data)
-        return DeliveryCapacity(*data)
+    def pprint(self) -> None:
+        pprint(asdict(self), sort_dicts=False)
 
 
 @dataclass
