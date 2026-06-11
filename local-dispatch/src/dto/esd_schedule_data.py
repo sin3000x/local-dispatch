@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, asdict
 from pprint import pprint
-from typing import List, NamedTuple, Dict, Optional
+from typing import Any, List, NamedTuple, Dict, Optional, Tuple, Union
 
 
 @dataclass
@@ -44,6 +44,28 @@ class ESDScheduleInput:
 
     def pprint(self) -> None:
         pprint(asdict(self), sort_dicts=False)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ESDScheduleInput":
+        """从 ``asdict`` / ``json.loads`` 得到的字典还原为输入对象。"""
+        return cls(
+            time_unit_in_minutes=data.get("time_unit_in_minutes", 30),
+            groups=[Group(**group) for group in data.get("groups", [])],
+            delivery_capacities=[
+                cls._delivery_capacity_from_dict(capacity)
+                for capacity in data.get("delivery_capacities", [])
+            ],
+        )
+
+    @staticmethod
+    def _delivery_capacity_from_dict(
+        data: Union[DeliveryCapacity, Dict[str, Any], List[Any], Tuple[Any, ...]],
+    ) -> DeliveryCapacity:
+        if isinstance(data, DeliveryCapacity):
+            return data
+        if isinstance(data, dict):
+            return DeliveryCapacity(**data)
+        return DeliveryCapacity(*data)
 
 
 @dataclass

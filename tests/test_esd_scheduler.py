@@ -150,6 +150,33 @@ def test_docknum_change(show_plot):
     assert list(output.esd_result.keys()) == ["g-2", "g-1", "g-3"]
     assert output.esd_result == {"g-2": 1, "g-1": 2, "g-3": 3}
 
+def test_zero_target_time(show_plot):
+    groups = [
+        Group(
+            group_id="g-1",
+            earliest_load_time=0,
+            target_finish_time=0,
+            vol=2,
+            pc=20,
+            priority=2,
+            create_time=1,
+        ),
+    ]
+    capacities = [
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=1),
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=1),
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=1),
+        DeliveryCapacity(vol_per_dock=10, pc_per_dock=10, dock_num=1),
+    ]
+
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+    output.pprint()
+
+    if show_plot:
+        plot_esd_schedule(es_input, output)
+
+    assert output.esd_result == {"g-1": 1}
 
 def test_single_slot(show_plot):
     groups = [
