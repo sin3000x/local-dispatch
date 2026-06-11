@@ -9,6 +9,10 @@ from dto.esd_schedule_data import (
     Group,
 )
 
+# 浮点累加容差。用于吸收类似 0.2*5=0.9999999999999999 的累加误差，
+# 否则会让“恰好等于需求”的合理窗口被误判为不可行。
+_FLOAT_TOL: float = 1e-9
+
 
 class ESDScheduler:
     def __init__(self, esdata: ESDScheduleInput) -> None:
@@ -166,7 +170,7 @@ class ESDScheduler:
 
             # 当累计产能同时覆盖体积和件数需求时，当前 start_time 就是最早可行开始时间。
             # 之所以称为“最早”，是因为我们是从后往前扫描，第一次满足条件的位置就是最靠前的可行起点。
-            if total_vol >= group.vol and total_pc >= group.pc:
+            if total_vol + _FLOAT_TOL >= group.vol and total_pc + _FLOAT_TOL >= group.pc:
                 return start_time
 
             start_time -= 1
@@ -220,7 +224,7 @@ class ESDScheduler:
 
         # 如果仍然存在未覆盖的需求，说明该窗口在提交时并未真正满足业务约束。
         # 需要把前面已经占用的垛口恢复，确保全局可用产能保持一致。
-        if remaining_vol > 0 or remaining_pc > 0:
+        if remaining_vol > _FLOAT_TOL or remaining_pc > _FLOAT_TOL:
             for slot in usage:
                 availability[slot] += 1
             return None

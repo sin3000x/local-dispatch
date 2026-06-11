@@ -279,6 +279,34 @@ def test_empty():
     assert output.esd_result == {}
 
 
+def test_floating_point_accumulation(show_plot):
+    groups = [
+        Group(
+            group_id="g-1",
+            earliest_load_time=0,
+            target_finish_time=4,
+            vol=0.0034,
+            pc=1,
+            priority=1,
+            create_time=0,
+        ),
+    ]
+    capacities = [
+        DeliveryCapacity(vol_per_dock=0.1, pc_per_dock=0.2, dock_num=1)
+        for _ in range(10)
+    ]
+
+    es_input = build_input(groups, capacities)
+    output = ESDScheduler(es_input).schedule()
+    output.pprint()
+
+    if show_plot:
+        plot_esd_schedule(es_input, output)
+
+    # 5 个时间片累加 pc_per_dock=0.2 恰好覆盖 pc=1，应当成功分配。
+    assert output.esd_result == {"g-1": 4}
+
+
 def test_schedule_respects_dock_capacity_for_same_slot(show_plot):
     groups = [
         Group(
